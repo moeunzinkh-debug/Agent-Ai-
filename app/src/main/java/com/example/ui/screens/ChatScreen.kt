@@ -442,7 +442,7 @@ fun ChatScreen(
             onThemeChange = { viewModel.updateTheme(it) },
             onTextSizeChange = { viewModel.updateTextSize(it) },
             onModelChange = { viewModel.updateModel(it) },
-            onThinkingChange = { viewModel.updateThinking(it) },
+            onResponseModeChange = { viewModel.updateResponseMode(it) },
             onTtsChange = { viewModel.updateTts(it) },
             onCustomPromptChange = { viewModel.updateCustomPrompt(it) },
             onToggleGithub = { viewModel.toggleGithub() },

@@ -8,6 +8,7 @@ import com.example.data.model.ChatMessage
 import com.example.data.model.FileAttachment
 import com.example.data.model.LocalModel
 import com.example.data.model.LocalModels
+import com.example.data.model.ResponseMode
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -84,14 +85,14 @@ class LocalAgentEngine(private val context: Context) {
         attachments: List<FileAttachment>,
         agentPreset: AgentPreset,
         customInstruction: String,
-        isThinkingEnabled: Boolean,
+        responseMode: ResponseMode,
         language: String,
         model: LocalModel = LocalModels.DEFAULT
     ): Flow<String> = flow {
         val systemPrompt = buildSystemPrompt(
             agentPreset = agentPreset,
             customInstruction = customInstruction,
-            isThinkingEnabled = isThinkingEnabled,
+            responseMode = responseMode,
             language = language
         )
 
@@ -105,7 +106,13 @@ class LocalAgentEngine(private val context: Context) {
             val active = ensureModelLoaded(model, systemPrompt)
             _status.value = EngineStatus.Generating
             try {
-                active.sendUserPrompt(prompt, predictLength = MAX_PREDICT_TOKENS)
+                // Thinking mode needs headroom for the reasoning block plus the answer;
+                // instant mode is capped shorter so replies land quickly on a phone CPU.
+                val budget = when (responseMode) {
+                    ResponseMode.THINKING -> THINKING_PREDICT_TOKENS
+                    ResponseMode.INSTANT -> INSTANT_PREDICT_TOKENS
+                }
+                active.sendUserPrompt(prompt, predictLength = budget)
                     .collect { token -> emit(token) }
                 _status.value = EngineStatus.Ready
             } catch (e: CancellationException) {
@@ -193,7 +200,7 @@ class LocalAgentEngine(private val context: Context) {
     private fun buildSystemPrompt(
         agentPreset: AgentPreset,
         customInstruction: String,
-        isThinkingEnabled: Boolean,
+        responseMode: ResponseMode,
         language: String
     ): String = buildString {
         appendLine(agentPreset.systemPrompt)
@@ -210,11 +217,18 @@ class LocalAgentEngine(private val context: Context) {
             appendLine()
             appendLine("User custom instruction: $customInstruction")
         }
-        if (isThinkingEnabled) {
-            appendLine()
-            appendLine(
-                "If a question needs real reasoning, begin your reply with a short " +
-                    "<thought>...</thought> block, then give the final answer."
+        appendLine()
+        when (responseMode) {
+            ResponseMode.THINKING -> appendLine(
+                "REASONING MODE: Work through the problem step by step inside a " +
+                    "<thought>...</thought> block first. Check your assumptions and consider " +
+                    "edge cases there. After closing </thought>, give a clear final answer. " +
+                    "Keep the thought block concise."
+            )
+
+            ResponseMode.INSTANT -> appendLine(
+                "INSTANT MODE: Answer directly and concisely. Do NOT narrate your reasoning " +
+                    "and do NOT emit a <thought> block. Lead with the answer."
             )
         }
     }.trim()
@@ -275,7 +289,8 @@ class LocalAgentEngine(private val context: Context) {
 
     private companion object {
         const val TAG = "LocalAgentEngine"
-        const val MAX_PREDICT_TOKENS = 1024
+        const val INSTANT_PREDICT_TOKENS = 512
+        const val THINKING_PREDICT_TOKENS = 1536
         const val HISTORY_TURNS = 6
         const val MAX_HISTORY_CHARS = 1200
         const val MAX_ATTACHMENT_CHARS = 4000

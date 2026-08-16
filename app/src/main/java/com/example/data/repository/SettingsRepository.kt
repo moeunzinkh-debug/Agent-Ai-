@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import com.example.data.model.AppSettings
 import com.example.data.model.LocalModels
+import com.example.data.model.ResponseMode
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,7 +25,8 @@ class SettingsRepository(context: Context) {
             textSize = prefs.getString("text_size", "medium") ?: "medium",
             activeModel = prefs.getString("active_model", LocalModels.DEFAULT.id) ?: LocalModels.DEFAULT.id,
             customSystemPrompt = prefs.getString("custom_system_prompt", "") ?: "",
-            isThinkingEnabled = prefs.getBoolean("is_thinking_enabled", true),
+            responseMode = prefs.getString("response_mode", ResponseMode.INSTANT.id)
+                ?: ResponseMode.INSTANT.id,
             isTtsEnabled = prefs.getBoolean("is_tts_enabled", true),
             isGithubConnected = prefs.getBoolean("is_github_connected", true),
             githubUsername = prefs.getString("github_username", "agent-developer") ?: "agent-developer",
@@ -57,9 +59,9 @@ class SettingsRepository(context: Context) {
         _settings.update { it.copy(customSystemPrompt = prompt) }
     }
 
-    fun updateThinkingEnabled(enabled: Boolean) {
-        prefs.edit().putBoolean("is_thinking_enabled", enabled).apply()
-        _settings.update { it.copy(isThinkingEnabled = enabled) }
+    fun updateResponseMode(mode: String) {
+        prefs.edit().putString("response_mode", mode).apply()
+        _settings.update { it.copy(responseMode = mode) }
     }
 
     fun updateTtsEnabled(enabled: Boolean) {

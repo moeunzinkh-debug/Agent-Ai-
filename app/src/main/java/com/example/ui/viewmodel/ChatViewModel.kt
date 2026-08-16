@@ -10,6 +10,7 @@ import com.example.data.model.AgentPreset
 import com.example.data.model.AgentPresets
 import com.example.data.model.FileAttachment
 import com.example.data.model.LocalModels
+import com.example.data.model.ResponseMode
 import com.example.data.local.ModelRepository
 import com.example.data.remote.InferenceUnavailableException
 import com.example.data.remote.LocalAgentEngine
@@ -202,7 +203,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     attachments = attachments,
                     agentPreset = state.currentPreset,
                     customInstruction = state.settings.customSystemPrompt,
-                    isThinkingEnabled = state.settings.isThinkingEnabled,
+                    responseMode = ResponseMode.fromId(state.settings.responseMode),
                     language = state.settings.language,
                     model = state.activeModel
                 )
@@ -409,7 +410,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             showToast(if (lang == "km") "បានលុបម៉ូដែលចេញពីឧបករណ៍" else "Model removed from device")
         }
     }
-    fun updateThinking(enabled: Boolean) = settingsRepository.updateThinkingEnabled(enabled)
+    fun updateResponseMode(mode: String) = settingsRepository.updateResponseMode(mode)
     fun updateTts(enabled: Boolean) = settingsRepository.updateTtsEnabled(enabled)
     fun updateCustomPrompt(prompt: String) = settingsRepository.updateCustomSystemPrompt(prompt)
     fun toggleGithub() = settingsRepository.toggleGithubConnection()
