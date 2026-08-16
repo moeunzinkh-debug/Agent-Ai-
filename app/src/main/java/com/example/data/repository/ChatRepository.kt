@@ -6,14 +6,17 @@ import com.example.data.model.AgentPresets
 import com.example.data.model.ChatMessage
 import com.example.data.model.ChatSession
 import com.example.data.model.FileAttachment
-import com.example.data.remote.GemmaAgentEngine
+import com.example.data.model.LocalModel
+import com.example.data.model.LocalModels
+import com.example.data.remote.InferenceUnavailableException
+import com.example.data.remote.LocalAgentEngine
 import com.example.util.ZipAndFileHelper
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 
 class ChatRepository(
     private val chatDao: ChatDao,
-    private val agentEngine: GemmaAgentEngine = GemmaAgentEngine()
+    private val agentEngine: LocalAgentEngine
 ) {
 
     val allSessions: Flow<List<ChatSession>> = chatDao.getAllSessions()
@@ -70,6 +73,13 @@ class ChatRepository(
         return chatDao.searchMessages(query)
     }
 
+    /**
+     * Persists the user's turn, then streams a genuine on-device model response into the
+     * assistant message as tokens arrive.
+     *
+     * If real inference is impossible the assistant message is marked as an error carrying the
+     * actual reason — the app never substitutes a scripted reply.
+     */
     suspend fun sendMessage(
         sessionId: String,
         userPrompt: String,
@@ -77,7 +87,8 @@ class ChatRepository(
         agentPreset: AgentPreset,
         customInstruction: String,
         isThinkingEnabled: Boolean,
-        language: String = "en"
+        language: String = "en",
+        model: LocalModel = LocalModels.DEFAULT
     ) {
         val timestamp = System.currentTimeMillis()
         val attachmentsJson = ZipAndFileHelper.serializeAttachments(attachments)
@@ -107,16 +118,15 @@ class ChatRepository(
             }
             updateSessionTitle(sessionId, generatedTitle)
         } else {
-            // Touch updatedAt
             val session = chatDao.getSessionById(sessionId)
             if (session != null) {
                 chatDao.updateSession(session.copy(updatedAt = System.currentTimeMillis()))
             }
         }
 
-        // 2. Insert placeholder assistant message with thinking status
+        // 2. Insert placeholder assistant message
         val assistantMessageId = UUID.randomUUID().toString()
-        val placeholderAssistant = ChatMessage(
+        val placeholder = ChatMessage(
             id = assistantMessageId,
             sessionId = sessionId,
             role = "assistant",
@@ -125,26 +135,88 @@ class ChatRepository(
             isThinking = true,
             status = "sending"
         )
-        chatDao.insertMessage(placeholderAssistant)
+        chatDao.insertMessage(placeholder)
 
-        // 3. Call AI Agent Engine
-        val result = agentEngine.generateAgentResponse(
-            userMessage = userPrompt,
-            history = currentMessages,
-            attachments = attachments,
-            agentPreset = agentPreset,
-            customInstruction = customInstruction,
-            isThinkingEnabled = isThinkingEnabled,
-            language = language
-        )
+        // 3. Stream real tokens from the on-device model
+        val builder = StringBuilder()
+        var lastFlush = 0L
+        try {
+            agentEngine.generate(
+                userMessage = userPrompt,
+                history = currentMessages.dropLast(1),
+                attachments = attachments,
+                agentPreset = agentPreset,
+                customInstruction = customInstruction,
+                isThinkingEnabled = isThinkingEnabled,
+                language = language,
+                model = model
+            ).collect { token ->
+                builder.append(token)
+                val now = System.currentTimeMillis()
+                // Persist incrementally so the UI streams, without hammering the database.
+                if (now - lastFlush >= STREAM_FLUSH_INTERVAL_MS) {
+                    lastFlush = now
+                    val (thought, visible) = splitThinking(builder.toString())
+                    chatDao.updateMessage(
+                        placeholder.copy(
+                            content = visible,
+                            thinkingProcess = thought,
+                            isThinking = true,
+                            status = "sending"
+                        )
+                    )
+                }
+            }
 
-        // 4. Update assistant message with response
-        val finalAssistantMessage = placeholderAssistant.copy(
-            content = result.responseText,
-            isThinking = false,
-            thinkingProcess = result.thinkingProcess,
-            status = if (result.isSuccess) "completed" else "error"
-        )
-        chatDao.updateMessage(finalAssistantMessage)
+            val (thought, visible) = splitThinking(builder.toString())
+            chatDao.updateMessage(
+                placeholder.copy(
+                    content = visible.ifBlank {
+                        "The model returned an empty response. Try rephrasing your question."
+                    },
+                    thinkingProcess = thought,
+                    isThinking = false,
+                    status = if (visible.isBlank()) "error" else "completed"
+                )
+            )
+        } catch (e: InferenceUnavailableException) {
+            chatDao.updateMessage(
+                placeholder.copy(
+                    content = e.message ?: "On-device inference is unavailable.",
+                    isThinking = false,
+                    status = "error"
+                )
+            )
+            throw e
+        } catch (e: Exception) {
+            val partial = builder.toString()
+            chatDao.updateMessage(
+                placeholder.copy(
+                    content = if (partial.isNotBlank()) partial else
+                        "Generation stopped: ${e.message ?: "unknown error"}",
+                    isThinking = false,
+                    status = "error"
+                )
+            )
+            throw e
+        }
+    }
+
+    /** Separates an optional <thought>...</thought> preamble from the visible answer. */
+    private fun splitThinking(raw: String): Pair<String, String> {
+        val complete = Regex("<thought>([\\s\\S]*?)</thought>", RegexOption.IGNORE_CASE).find(raw)
+        if (complete != null) {
+            return complete.groupValues[1].trim() to raw.replace(complete.value, "").trim()
+        }
+        // Thought block still streaming: show it as reasoning, keep the answer empty for now.
+        val open = Regex("<thought>([\\s\\S]*)$", RegexOption.IGNORE_CASE).find(raw)
+        if (open != null) {
+            return open.groupValues[1].trim() to raw.substring(0, open.range.first).trim()
+        }
+        return "" to raw.trim()
+    }
+
+    private companion object {
+        const val STREAM_FLUSH_INTERVAL_MS = 120L
     }
 }

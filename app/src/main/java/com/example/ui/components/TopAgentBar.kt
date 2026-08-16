@@ -55,8 +55,8 @@ import androidx.compose.ui.unit.sp
 import com.example.data.model.AgentPreset
 import com.example.data.model.AgentPresets
 import com.example.data.model.LocalizedContent
-import com.example.ui.theme.GemmaAccent
-import com.example.ui.theme.GemmaAccentLight
+import com.example.ui.theme.AccentPrimary
+import com.example.ui.theme.AccentLight
 import com.example.ui.theme.StatusSuccess
 
 @Composable
@@ -116,8 +116,8 @@ fun TopAgentBar(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(20.dp))
-                    .background(GemmaAccentLight)
-                    .border(1.dp, GemmaAccent.copy(alpha = 0.6f), RoundedCornerShape(20.dp))
+                    .background(AccentLight)
+                    .border(1.dp, AccentPrimary.copy(alpha = 0.6f), RoundedCornerShape(20.dp))
                     .clickable { presetMenuExpanded = true }
                     .padding(horizontal = 10.dp, vertical = 6.dp)
             ) {
@@ -136,13 +136,13 @@ fun TopAgentBar(
                         text = currentPreset.getDisplayName(language),
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.SemiBold,
-                        color = GemmaAccent
+                        color = AccentPrimary
                     )
 
                     Icon(
                         imageVector = Icons.Default.ArrowDropDown,
                         contentDescription = "Select Agent Persona",
-                        tint = GemmaAccent,
+                        tint = AccentPrimary,
                         modifier = Modifier.size(16.dp)
                     )
                 }
@@ -157,7 +157,7 @@ fun TopAgentBar(
                                 Text(
                                     text = preset.getDisplayName(language),
                                     fontWeight = if (preset.id == currentPreset.id) FontWeight.Bold else FontWeight.Normal,
-                                    color = if (preset.id == currentPreset.id) GemmaAccent else MaterialTheme.colorScheme.onSurface
+                                    color = if (preset.id == currentPreset.id) AccentPrimary else MaterialTheme.colorScheme.onSurface
                                 )
                             },
                             onClick = {
@@ -180,7 +180,7 @@ fun TopAgentBar(
                 modifier = Modifier
                     .clip(RoundedCornerShape(16.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .border(1.dp, GemmaAccent.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
+                    .border(1.dp, AccentPrimary.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
                     .clickable {
                         val nextLang = if (language == "en") "km" else "en"
                         onLanguageToggle(nextLang)
@@ -195,7 +195,7 @@ fun TopAgentBar(
                     Icon(
                         imageVector = Icons.Default.Language,
                         contentDescription = "Language",
-                        tint = GemmaAccent,
+                        tint = AccentPrimary,
                         modifier = Modifier.size(14.dp)
                     )
                     AnimatedContent(
@@ -207,7 +207,7 @@ fun TopAgentBar(
                             text = if (targetLang == "km") "ខ្មែរ" else "EN",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
-                            color = GemmaAccent,
+                            color = AccentPrimary,
                             fontSize = 11.sp
                         )
                     }

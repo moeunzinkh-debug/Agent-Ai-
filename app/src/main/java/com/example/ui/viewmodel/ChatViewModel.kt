@@ -9,6 +9,10 @@ import com.example.data.local.AppDatabase
 import com.example.data.model.AgentPreset
 import com.example.data.model.AgentPresets
 import com.example.data.model.FileAttachment
+import com.example.data.model.LocalModels
+import com.example.data.local.ModelRepository
+import com.example.data.remote.InferenceUnavailableException
+import com.example.data.remote.LocalAgentEngine
 import com.example.data.repository.ChatRepository
 import com.example.data.repository.SettingsRepository
 import com.example.util.TextToSpeechHelper
@@ -24,9 +28,13 @@ import kotlinx.coroutines.launch
 class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     private val db = AppDatabase.getDatabase(application)
-    private val chatRepository = ChatRepository(db.chatDao())
+    private val agentEngine = LocalAgentEngine(application)
+    private val modelRepository = ModelRepository(application)
+    private val chatRepository = ChatRepository(db.chatDao(), agentEngine)
     private val settingsRepository = SettingsRepository(application)
     private val ttsHelper = TextToSpeechHelper(application)
+
+    private var downloadJob: Job? = null
 
     private val _uiState = MutableStateFlow(ChatUiState())
     val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
@@ -34,6 +42,29 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     private var messagesJob: Job? = null
 
     init {
+        // Reflect which on-device model is selected and whether its weights are present.
+        viewModelScope.launch {
+            settingsRepository.settings.collectLatest { settings ->
+                val model = LocalModels.getById(settings.activeModel)
+                _uiState.update {
+                    it.copy(
+                        activeModel = model,
+                        isModelDownloaded = modelRepository.isDownloaded(model),
+                        downloadedBytes = modelRepository.downloadedBytes(model)
+                    )
+                }
+            }
+        }
+
+        // Surface real engine state (loading weights, generating, hard errors).
+        viewModelScope.launch {
+            agentEngine.status.collectLatest { status ->
+                _uiState.update {
+                    it.copy(isLoadingModel = status is LocalAgentEngine.EngineStatus.LoadingModel)
+                }
+            }
+        }
+
         // Observe Settings
         viewModelScope.launch {
             settingsRepository.settings.collectLatest { settings ->
@@ -172,8 +203,12 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     agentPreset = state.currentPreset,
                     customInstruction = state.settings.customSystemPrompt,
                     isThinkingEnabled = state.settings.isThinkingEnabled,
-                    language = state.settings.language
+                    language = state.settings.language,
+                    model = state.activeModel
                 )
+            } catch (e: InferenceUnavailableException) {
+                // Real failure of real inference - tell the user exactly what happened.
+                showToast(e.message ?: "On-device model unavailable.")
             } catch (e: Exception) {
                 showToast("Error generating response: ${e.localizedMessage}")
             } finally {
@@ -257,11 +292,11 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         val shareContent = buildString {
-            appendLine(if (lang == "km") "=== ការសន្ទនាជាមួយ Gemma 4 ភ្នាក់ងារ AI ===" else "=== Conversation with Gemma 4 Agent AI ===")
+            appendLine(if (lang == "km") "=== ការសន្ទនាជាមួយ ភ្នាក់ងារ AI ===" else "=== Conversation with Agent AI ===")
             appendLine("${if (lang == "km") "របៀប" else "Persona"}: ${_uiState.value.currentPreset.getDisplayName(lang)}")
             appendLine()
             messages.forEach { msg ->
-                val sender = if (msg.role == "user") (if (lang == "km") "អ្នក" else "User") else "Gemma 4"
+                val sender = if (msg.role == "user") (if (lang == "km") "អ្នក" else "User") else "Agent AI"
                 appendLine("[$sender]:")
                 appendLine(msg.content)
                 appendLine()
@@ -284,7 +319,96 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     fun updateLanguage(language: String) = settingsRepository.updateLanguage(language)
     fun updateTheme(themeMode: String) = settingsRepository.updateTheme(themeMode)
     fun updateTextSize(textSize: String) = settingsRepository.updateTextSize(textSize)
-    fun updateModel(model: String) = settingsRepository.updateActiveModel(model)
+    fun updateModel(model: String) {
+        settingsRepository.updateActiveModel(model)
+        val selected = LocalModels.getById(model)
+        _uiState.update {
+            it.copy(
+                activeModel = selected,
+                isModelDownloaded = modelRepository.isDownloaded(selected),
+                downloadedBytes = modelRepository.downloadedBytes(selected),
+                downloadError = null
+            )
+        }
+    }
+
+    /** Downloads the GGUF weights so the model can run offline on this device. */
+    fun downloadActiveModel() {
+        if (downloadJob?.isActive == true) return
+        val model = _uiState.value.activeModel
+        val lang = _uiState.value.settings.language
+
+        downloadJob = viewModelScope.launch {
+            _uiState.update {
+                it.copy(isDownloadingModel = true, downloadError = null, downloadPercent = 0)
+            }
+            modelRepository.download(model).collectLatest { progress ->
+                when (progress) {
+                    is ModelRepository.DownloadProgress.Downloading -> {
+                        _uiState.update {
+                            it.copy(
+                                downloadPercent = progress.percent,
+                                downloadedBytes = progress.bytesDownloaded
+                            )
+                        }
+                    }
+
+                    is ModelRepository.DownloadProgress.Completed -> {
+                        _uiState.update {
+                            it.copy(
+                                isDownloadingModel = false,
+                                isModelDownloaded = true,
+                                downloadPercent = 100,
+                                downloadedBytes = progress.file.length()
+                            )
+                        }
+                        showToast(
+                            if (lang == "km") "ទាញយកម៉ូដែលរួចរាល់។ AI ដំណើរការក្នុងទូរស័ព្ទហើយ។"
+                            else "Model ready. The AI now runs on your device."
+                        )
+                    }
+
+                    is ModelRepository.DownloadProgress.Failed -> {
+                        _uiState.update {
+                            it.copy(isDownloadingModel = false, downloadError = progress.error)
+                        }
+                        showToast(progress.error)
+                    }
+                }
+            }
+        }
+    }
+
+    fun cancelModelDownload() {
+        downloadJob?.cancel()
+        downloadJob = null
+        val model = _uiState.value.activeModel
+        _uiState.update {
+            it.copy(
+                isDownloadingModel = false,
+                downloadedBytes = modelRepository.downloadedBytes(model)
+            )
+        }
+    }
+
+    /** Removes the weights from the device and frees the RAM held by llama.cpp. */
+    fun deleteActiveModel() {
+        val model = _uiState.value.activeModel
+        val lang = _uiState.value.settings.language
+        viewModelScope.launch {
+            cancelModelDownload()
+            agentEngine.unload()
+            modelRepository.deleteModel(model)
+            _uiState.update {
+                it.copy(
+                    isModelDownloaded = false,
+                    downloadPercent = 0,
+                    downloadedBytes = 0L
+                )
+            }
+            showToast(if (lang == "km") "បានលុបម៉ូដែលចេញពីឧបករណ៍" else "Model removed from device")
+        }
+    }
     fun updateThinking(enabled: Boolean) = settingsRepository.updateThinkingEnabled(enabled)
     fun updateTts(enabled: Boolean) = settingsRepository.updateTtsEnabled(enabled)
     fun updateCustomPrompt(prompt: String) = settingsRepository.updateCustomSystemPrompt(prompt)
@@ -303,5 +427,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     override fun onCleared() {
         super.onCleared()
         ttsHelper.shutdown()
+        downloadJob?.cancel()
+        // Free the weights held in RAM by llama.cpp.
+        viewModelScope.launch { agentEngine.unload() }
     }
 }

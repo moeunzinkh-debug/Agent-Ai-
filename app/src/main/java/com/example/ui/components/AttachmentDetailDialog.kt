@@ -40,8 +40,8 @@ import androidx.compose.ui.window.Dialog
 import com.example.data.model.FileAttachment
 import com.example.ui.theme.CodeBlockBg
 import com.example.ui.theme.DarkTextMuted
-import com.example.ui.theme.GemmaAccent
-import com.example.ui.theme.GemmaAccentLight
+import com.example.ui.theme.AccentPrimary
+import com.example.ui.theme.AccentLight
 
 @Composable
 fun AttachmentDetailDialog(
@@ -79,13 +79,13 @@ fun AttachmentDetailDialog(
                         Box(
                             modifier = Modifier
                                 .size(36.dp)
-                                .background(GemmaAccentLight, RoundedCornerShape(8.dp)),
+                                .background(AccentLight, RoundedCornerShape(8.dp)),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = if (attachment.isZip) Icons.Default.FolderZip else Icons.Default.Description,
                                 contentDescription = null,
-                                tint = if (attachment.isZip) Color(0xFFF59E0B) else GemmaAccent,
+                                tint = if (attachment.isZip) Color(0xFFF59E0B) else AccentPrimary,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -124,7 +124,7 @@ fun AttachmentDetailDialog(
                         text = "ARCHIVE DIRECTORY HIERARCHY",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
-                        color = GemmaAccent
+                        color = AccentPrimary
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
@@ -145,7 +145,7 @@ fun AttachmentDetailDialog(
                         text = if (attachment.isZip) "EXTRACTED SOURCE SNIPPETS" else "FILE CONTENT PREVIEW",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
-                        color = GemmaAccent
+                        color = AccentPrimary
                     )
                     Spacer(modifier = Modifier.height(6.dp))
 

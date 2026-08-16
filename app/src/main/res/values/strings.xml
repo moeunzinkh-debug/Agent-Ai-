@@ -1,13 +1,13 @@
 <resources>
-    <string name="app_name">Gemma 4 Agent AI</string>
+    <string name="app_name">Agent AI</string>
     <string name="new_chat">New Chat</string>
     <string name="search_chats">Search conversations...</string>
-    <string name="model_badge">Gemma 4 Agent</string>
-    <string name="ask_placeholder">Ask Gemma 4 anything, type code or paste text...</string>
+    <string name="model_badge">Llama 3.2 1B • On-device</string>
+    <string name="ask_placeholder">Ask anything, type code or paste text...</string>
     <string name="send">Send</string>
     <string name="clear_chat">Clear Chat</string>
     <string name="delete_chat">Delete Chat</string>
     <string name="settings">Settings</string>
-    <string name="welcome_title">Gemma 4 Agent AI</string>
+    <string name="welcome_title">Agent AI</string>
     <string name="welcome_subtitle">State-of-the-art agentic AI assistant. Ask questions, analyze code and documents, unpack ZIP archives, or brainstorm ideas.</string>
 </resources>

@@ -78,7 +78,7 @@ import com.example.ui.components.SidebarDrawer
 import com.example.ui.components.ToastNotification
 import com.example.ui.components.TopAgentBar
 import com.example.ui.components.WelcomeScreen
-import com.example.ui.theme.GemmaAccent
+import com.example.ui.theme.AccentPrimary
 import com.example.ui.viewmodel.ChatViewModel
 import kotlinx.coroutines.launch
 
@@ -206,7 +206,12 @@ fun ChatScreen(
                             onAttachClick = {
                                 filePickerLauncher.launch("*/*")
                             },
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
+                            isModelReady = uiState.isModelDownloaded,
+                            isDownloadingModel = uiState.isDownloadingModel,
+                            downloadPercent = uiState.downloadPercent,
+                            modelSizeLabel = uiState.activeModel.sizeLabel,
+                            onSetupModel = { viewModel.downloadActiveModel() }
                         )
                     } else {
                         Box(modifier = Modifier.weight(1f)) {
@@ -246,7 +251,7 @@ fun ChatScreen(
                                         }
                                     },
                                     containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                                    contentColor = GemmaAccent,
+                                    contentColor = AccentPrimary,
                                     elevation = FloatingActionButtonDefaults.elevation(4.dp),
                                     modifier = Modifier
                                         .align(Alignment.BottomEnd)
@@ -308,7 +313,7 @@ fun ChatScreen(
                                 Icon(
                                     imageVector = Icons.Default.AttachFile,
                                     contentDescription = strings.attachTooltip,
-                                    tint = GemmaAccent,
+                                    tint = AccentPrimary,
                                     modifier = Modifier.size(22.dp)
                                 )
                             }
@@ -341,7 +346,7 @@ fun ChatScreen(
                                 colors = OutlinedTextFieldDefaults.colors(
                                     focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                                     unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                                    focusedBorderColor = GemmaAccent,
+                                    focusedBorderColor = AccentPrimary,
                                     unfocusedBorderColor = MaterialTheme.colorScheme.outline
                                 )
                             )
@@ -354,7 +359,7 @@ fun ChatScreen(
                                 label = "send_button_scale"
                             )
                             val sendBtnBg by animateColorAsState(
-                                targetValue = if (canSend) GemmaAccent else MaterialTheme.colorScheme.surfaceVariant,
+                                targetValue = if (canSend) AccentPrimary else MaterialTheme.colorScheme.surfaceVariant,
                                 animationSpec = tween(200),
                                 label = "send_button_bg"
                             )
@@ -400,7 +405,7 @@ fun ChatScreen(
                             Text(
                                 text = if (currentLang == "km") "គាំទ្រ Markdown & កូដ" else "Markdown & Code enabled",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = GemmaAccent.copy(alpha = 0.9f)
+                                color = AccentPrimary.copy(alpha = 0.9f)
                             )
                         }
                     }
@@ -424,6 +429,15 @@ fun ChatScreen(
     if (uiState.isSettingsOpen) {
         SettingsDialog(
             settings = uiState.settings,
+            activeModel = uiState.activeModel,
+            isModelDownloaded = uiState.isModelDownloaded,
+            isDownloadingModel = uiState.isDownloadingModel,
+            downloadPercent = uiState.downloadPercent,
+            downloadedBytes = uiState.downloadedBytes,
+            downloadError = uiState.downloadError,
+            onDownloadModel = { viewModel.downloadActiveModel() },
+            onCancelDownload = { viewModel.cancelModelDownload() },
+            onDeleteModel = { viewModel.deleteActiveModel() },
             onLanguageChange = { viewModel.updateLanguage(it) },
             onThemeChange = { viewModel.updateTheme(it) },
             onTextSizeChange = { viewModel.updateTextSize(it) },
