@@ -14,7 +14,9 @@ android {
 
   defaultConfig {
     applicationId = "com.aistudio.gemmaagent.xkyt"
-    minSdk = 24
+    // The llama.cpp runtime (llama.android) requires API 30+, and on-device inference of a
+    // 0.8 GB model is only realistic on devices of that generation anyway.
+    minSdk = 30
     targetSdk = 36
     versionCode = 1
     versionName = "1.0"
