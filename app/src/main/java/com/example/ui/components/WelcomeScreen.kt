@@ -65,6 +65,7 @@ fun WelcomeScreen(
     isDownloadingModel: Boolean = false,
     downloadPercent: Int = 0,
     modelSizeLabel: String = "",
+    isDeviceSupported: Boolean = true,
     onSetupModel: () -> Unit = {}
 ) {
     val scrollState = rememberScrollState()
@@ -116,6 +117,7 @@ fun WelcomeScreen(
         if (!isModelReady) {
             ModelSetupBanner(
                 isKm = isKm,
+                isDeviceSupported = isDeviceSupported,
                 isDownloading = isDownloadingModel,
                 downloadPercent = downloadPercent,
                 sizeLabel = modelSizeLabel,
@@ -321,6 +323,7 @@ fun SuggestionChip(
 @Composable
 private fun ModelSetupBanner(
     isKm: Boolean,
+    isDeviceSupported: Boolean,
     isDownloading: Boolean,
     downloadPercent: Int,
     sizeLabel: String,
@@ -334,6 +337,25 @@ private fun ModelSetupBanner(
             .padding(16.dp)
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            if (!isDeviceSupported) {
+                Text(
+                    text = if (isKm) "ឧបករណ៍នេះមិនអាចដំណើរការបានទេ"
+                    else "This device is not supported",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = if (isKm)
+                        "ត្រូវការ CPU ARM 64-bit ដើម្បីដំណើរការ AI ក្នុងឧបករណ៍។"
+                    else
+                        "A 64-bit ARM processor is required to run the AI on-device.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+            } else {
             Text(
                 text = if (isKm) "ត្រៀមម៉ូដែល AI របស់អ្នក" else "Set up your AI model",
                 style = MaterialTheme.typography.titleSmall,
@@ -365,6 +387,7 @@ private fun ModelSetupBanner(
                 ) {
                     Text(if (isKm) "ទាញយកឥឡូវនេះ" else "Download now")
                 }
+            }
             }
         }
     }

@@ -10,7 +10,6 @@ import com.example.data.model.AgentPreset
 import com.example.data.model.AgentPresets
 import com.example.data.model.FileAttachment
 import com.example.data.model.LocalModels
-import com.example.data.model.ResponseMode
 import com.example.data.local.ModelRepository
 import com.example.data.remote.InferenceUnavailableException
 import com.example.data.remote.LocalAgentEngine
@@ -37,12 +36,17 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     private var downloadJob: Job? = null
 
+    /** False on devices whose CPU has no compatible native library (e.g. 32-bit only). */
+    val isDeviceSupported: Boolean = agentEngine.isDeviceSupported()
+
     private val _uiState = MutableStateFlow(ChatUiState())
     val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
 
     private var messagesJob: Job? = null
 
     init {
+        _uiState.update { it.copy(isDeviceSupported = isDeviceSupported) }
+
         // Reflect which on-device model is selected and whether its weights are present.
         viewModelScope.launch {
             settingsRepository.settings.collectLatest { settings ->
@@ -203,7 +207,6 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     attachments = attachments,
                     agentPreset = state.currentPreset,
                     customInstruction = state.settings.customSystemPrompt,
-                    responseMode = ResponseMode.fromId(state.settings.responseMode),
                     language = state.settings.language,
                     model = state.activeModel
                 )
@@ -410,7 +413,6 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             showToast(if (lang == "km") "បានលុបម៉ូដែលចេញពីឧបករណ៍" else "Model removed from device")
         }
     }
-    fun updateResponseMode(mode: String) = settingsRepository.updateResponseMode(mode)
     fun updateTts(enabled: Boolean) = settingsRepository.updateTtsEnabled(enabled)
     fun updateCustomPrompt(prompt: String) = settingsRepository.updateCustomSystemPrompt(prompt)
     fun toggleGithub() = settingsRepository.toggleGithubConnection()

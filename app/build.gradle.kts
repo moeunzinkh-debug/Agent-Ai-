@@ -14,9 +14,8 @@ android {
 
   defaultConfig {
     applicationId = "com.aistudio.gemmaagent.xkyt"
-    // The llama.cpp runtime (llama.android) requires API 30+, and on-device inference of a
-    // 0.8 GB model is only realistic on devices of that generation anyway.
-    minSdk = 30
+    // Android 7.0+. llama.cpp is compiled from source in the :llama module against API 24.
+    minSdk = 24
     targetSdk = 36
     versionCode = 1
     versionName = "1.0"
@@ -68,8 +67,10 @@ android {
     buildConfig = true
   }
   testOptions { unitTests { isIncludeAndroidResources = true } }
-  // The llama.cpp native libraries must be extracted so the engine can dlopen them.
+  // Keep the llama.cpp native libraries extracted on disk.
   packaging { jniLibs { useLegacyPackaging = true } }
+  // Only ship ABIs the native engine is built for.
+  defaultConfig { ndk { abiFilters += listOf("arm64-v8a", "x86_64") } }
   dependenciesInfo {
     includeInApk = false
     includeInBundle = true
@@ -125,8 +126,8 @@ dependencies {
   // implementation(libs.googleid)
   implementation(libs.firebase.appcheck.recaptcha)
   implementation(libs.kotlinx.coroutines.android)
-  // Real on-device LLM inference engine (llama.cpp + GGUF)
-  implementation(libs.llama.android)
+  // Real on-device LLM inference engine (llama.cpp compiled from source, API 24+)
+  implementation(project(":llama"))
   implementation(libs.kotlinx.coroutines.core)
   implementation(libs.logging.interceptor)
   implementation(libs.moshi.kotlin)

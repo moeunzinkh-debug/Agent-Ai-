@@ -19,11 +19,10 @@ dependencyResolutionManagement {
   repositories {
     google()
     mavenCentral()
-    // Hosts the llama.cpp Android bindings used for real on-device inference.
-    maven { url = uri("https://jitpack.io") }
   }
 }
 
 rootProject.name = "Agent AI"
 
 include(":app")
+include(":llama")

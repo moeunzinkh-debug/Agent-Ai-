@@ -26,28 +26,9 @@ data class LocalModel(
     /** True when the model has no refusal/safety alignment layer. */
     val isUncensored: Boolean = false,
     /** Context window to request from llama.cpp. */
-    val contextLength: Int = 4096
+    val contextLength: Int = 2048
 ) {
     val sizeMb: Long get() = sizeBytes / (1024 * 1024)
-}
-
-/**
- * How the model should answer.
- *
- * Both modes use the SAME weights — Llama 3.2 1B is a plain instruct model with no built-in
- * reasoning mode — but they differ in the system prompt, sampling temperature and token budget.
- */
-enum class ResponseMode(val id: String) {
-    /** Answer straight away. Fastest, best for short questions on a phone CPU. */
-    INSTANT("instant"),
-
-    /** Reason step by step inside a <thought> block first, then answer. Slower. */
-    THINKING("thinking");
-
-    companion object {
-        fun fromId(id: String?): ResponseMode =
-            entries.find { it.id == id } ?: INSTANT
-    }
 }
 
 object LocalModels {
@@ -68,7 +49,7 @@ object LocalModels {
         description = "Smallest uncensored open-source model. Runs fully offline on your device.",
         descriptionKm = "ម៉ូដែលបើកចំហ uncensored តូចបំផុត។ ដំណើរការលើទូរស័ព្ទរបស់អ្នកទាំងស្រុង។",
         isUncensored = true,
-        contextLength = 4096
+        contextLength = 2048
     )
 
     val ALL: List<LocalModel> = listOf(LLAMA_3_2_1B_INSTRUCT)

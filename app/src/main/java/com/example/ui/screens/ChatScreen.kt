@@ -211,6 +211,7 @@ fun ChatScreen(
                             isDownloadingModel = uiState.isDownloadingModel,
                             downloadPercent = uiState.downloadPercent,
                             modelSizeLabel = uiState.activeModel.sizeLabel,
+                            isDeviceSupported = uiState.isDeviceSupported,
                             onSetupModel = { viewModel.downloadActiveModel() }
                         )
                     } else {
@@ -442,7 +443,6 @@ fun ChatScreen(
             onThemeChange = { viewModel.updateTheme(it) },
             onTextSizeChange = { viewModel.updateTextSize(it) },
             onModelChange = { viewModel.updateModel(it) },
-            onResponseModeChange = { viewModel.updateResponseMode(it) },
             onTtsChange = { viewModel.updateTts(it) },
             onCustomPromptChange = { viewModel.updateCustomPrompt(it) },
             onToggleGithub = { viewModel.toggleGithub() },

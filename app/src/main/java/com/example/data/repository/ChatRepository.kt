@@ -8,7 +8,6 @@ import com.example.data.model.ChatSession
 import com.example.data.model.FileAttachment
 import com.example.data.model.LocalModel
 import com.example.data.model.LocalModels
-import com.example.data.model.ResponseMode
 import com.example.data.remote.InferenceUnavailableException
 import com.example.data.remote.LocalAgentEngine
 import com.example.util.ZipAndFileHelper
@@ -87,7 +86,6 @@ class ChatRepository(
         attachments: List<FileAttachment>,
         agentPreset: AgentPreset,
         customInstruction: String,
-        responseMode: ResponseMode,
         language: String = "en",
         model: LocalModel = LocalModels.DEFAULT
     ) {
@@ -148,7 +146,6 @@ class ChatRepository(
                 attachments = attachments,
                 agentPreset = agentPreset,
                 customInstruction = customInstruction,
-                responseMode = responseMode,
                 language = language,
                 model = model
             ).collect { token ->

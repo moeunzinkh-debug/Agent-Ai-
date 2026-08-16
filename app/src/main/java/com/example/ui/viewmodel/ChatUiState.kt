@@ -38,5 +38,7 @@ data class ChatUiState(
     /** Last download error, shown verbatim to the user. */
     val downloadError: String? = null,
     /** True while llama.cpp is loading the weights into memory. */
-    val isLoadingModel: Boolean = false
+    val isLoadingModel: Boolean = false,
+    /** False when this device's CPU cannot run the native engine at all. */
+    val isDeviceSupported: Boolean = true
 )

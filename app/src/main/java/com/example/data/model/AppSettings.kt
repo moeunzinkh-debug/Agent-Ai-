@@ -6,7 +6,6 @@ data class AppSettings(
     val textSize: String = "medium", // "small", "medium", "large"
     val activeModel: String = "llama-3.2-1b-instruct", // id from LocalModels
     val customSystemPrompt: String = "",
-    val responseMode: String = "instant", // "instant" or "thinking" (see ResponseMode)
     val isTtsEnabled: Boolean = true,
     val isGithubConnected: Boolean = true,
     val githubUsername: String = "agent-developer",

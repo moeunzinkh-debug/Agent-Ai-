@@ -58,7 +58,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.data.model.AppSettings
 import com.example.data.model.LocalModel
-import com.example.data.model.ResponseMode
 import com.example.data.model.LocalizedContent
 import com.example.ui.theme.AccentPrimary
 import com.example.ui.theme.StatusDanger
@@ -80,7 +79,6 @@ fun SettingsDialog(
     onThemeChange: (String) -> Unit,
     onTextSizeChange: (String) -> Unit,
     onModelChange: (String) -> Unit,
-    onResponseModeChange: (String) -> Unit,
     onTtsChange: (Boolean) -> Unit,
     onCustomPromptChange: (String) -> Unit,
     onToggleGithub: () -> Unit,
@@ -228,23 +226,6 @@ fun SettingsDialog(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                Text(
-                    text = strings.deepThinkingLabel,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = strings.deepThinkingDesc,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                ResponseModeSelector(
-                    selected = settings.responseMode,
-                    isKm = settings.language == "km",
-                    onSelect = onResponseModeChange
-                )
 
                 Spacer(modifier = Modifier.height(8.dp))
 
@@ -654,64 +635,3 @@ private fun ModelBadge(text: String) {
     }
 }
 
-/**
- * Instant vs Thinking. Both run the exact same on-device weights — Llama 3.2 1B has no
- * separate "reasoning" checkpoint — but they change the system prompt and the token budget.
- */
-@Composable
-private fun ResponseModeSelector(
-    selected: String,
-    isKm: Boolean,
-    onSelect: (String) -> Unit
-) {
-    val options = listOf(
-        Triple(
-            ResponseMode.INSTANT.id,
-            if (isKm) "ឆ្លើយភ្លាមៗ" else "Instant",
-            if (isKm) "លឿន • ឆ្លើយតែចម្លើយ" else "Fast • answer only"
-        ),
-        Triple(
-            ResponseMode.THINKING.id,
-            if (isKm) "គិតជាមុន" else "Thinking",
-            if (isKm) "យឺតជាង • បង្ហាញការវិភាគ" else "Slower • shows reasoning"
-        )
-    )
-
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        options.forEach { (id, title, subtitle) ->
-            val isActive = selected == id
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(
-                        if (isActive) AccentPrimary.copy(alpha = 0.18f)
-                        else MaterialTheme.colorScheme.surfaceVariant
-                    )
-                    .border(
-                        width = if (isActive) 1.5.dp else 1.dp,
-                        color = if (isActive) AccentPrimary else MaterialTheme.colorScheme.outline,
-                        shape = RoundedCornerShape(10.dp)
-                    )
-                    .clickable { onSelect(id) }
-                    .padding(horizontal = 10.dp, vertical = 10.dp)
-            ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = if (isActive) AccentPrimary else MaterialTheme.colorScheme.onSurface
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-    }
-}
