@@ -1,0 +1,6 @@
+{
+  "name": "Gemma 4 Agent AI",
+  "description": "Advanced conversational AI assistant with multi-session chat history, code execution assistance, ZIP and file analysis, custom agent presets, and full offline persistence.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
