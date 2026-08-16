@@ -147,6 +147,7 @@ dependencies {
   androidTestImplementation(libs.androidx.runner)
   debugImplementation(libs.androidx.compose.ui.test.manifest)
   debugImplementation(libs.androidx.compose.ui.tooling)
+  // Room is the only KSP processor: Moshi uses the reflection adapter
+  // (KotlinJsonAdapterFactory), so its codegen processor was redundant.
   "ksp"(libs.androidx.room.compiler)
-  "ksp"(libs.moshi.kotlin.codegen)
 }
