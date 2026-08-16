@@ -101,7 +101,8 @@ Java_com_example_llama_LlamaBridge_nativeLoadModel(
 
     auto mparams = llama_model_default_params();
     mparams.n_gpu_layers = 0; // CPU only: Vulkan/OpenCL are unreliable across old devices
-    mparams.use_mmap     = true;
+    // mmap keeps resident memory low, which matters on 2-3 GB Android 7 devices.
+    mparams.load_mode    = LLAMA_LOAD_MODE_MMAP;
 
     g_state.model = llama_model_load_from_file(cpath, mparams);
     env->ReleaseStringUTFChars(path, cpath);
