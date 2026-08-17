@@ -52,8 +52,8 @@ import androidx.compose.ui.unit.sp
 import com.example.data.model.AppSettings
 import com.example.data.model.ChatSession
 import com.example.data.model.LocalizedContent
-import com.example.ui.theme.GemmaAccent
-import com.example.ui.theme.GemmaAccentLight
+import com.example.ui.theme.AccentPrimary
+import com.example.ui.theme.AccentLight
 import com.example.ui.theme.StatusDanger
 
 @Composable
@@ -100,7 +100,7 @@ fun SidebarDrawer(
                     modifier = Modifier
                         .size(36.dp)
                         .clip(RoundedCornerShape(10.dp))
-                        .background(GemmaAccent),
+                        .background(AccentPrimary),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -136,7 +136,7 @@ fun SidebarDrawer(
                 .padding(horizontal = 16.dp, vertical = 6.dp)
                 .testTag("sidebar_new_chat_button"),
             colors = ButtonDefaults.buttonColors(
-                containerColor = GemmaAccent,
+                containerColor = AccentPrimary,
                 contentColor = Color.White
             ),
             shape = RoundedCornerShape(8.dp)
@@ -190,7 +190,7 @@ fun SidebarDrawer(
             colors = OutlinedTextFieldDefaults.colors(
                 focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                 unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                focusedBorderColor = GemmaAccent,
+                focusedBorderColor = AccentPrimary,
                 unfocusedBorderColor = MaterialTheme.colorScheme.outline
             )
         )
@@ -246,13 +246,13 @@ fun SidebarDrawer(
                 Box(
                     modifier = Modifier
                         .size(32.dp)
-                        .background(GemmaAccentLight, CircleShape),
+                        .background(AccentLight, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = "G",
                         fontWeight = FontWeight.Bold,
-                        color = GemmaAccent,
+                        color = AccentPrimary,
                         fontSize = 14.sp
                     )
                 }
@@ -303,11 +303,11 @@ fun SidebarHistoryItem(
             .padding(vertical = 2.dp)
             .clip(RoundedCornerShape(8.dp))
             .background(
-                if (isActive) GemmaAccentLight else Color.Transparent
+                if (isActive) AccentLight else Color.Transparent
             )
             .border(
                 width = if (isActive) 1.dp else 0.dp,
-                color = if (isActive) GemmaAccent else Color.Transparent,
+                color = if (isActive) AccentPrimary else Color.Transparent,
                 shape = RoundedCornerShape(8.dp)
             )
             .clickable { onSelect() }
@@ -323,7 +323,7 @@ fun SidebarHistoryItem(
             Icon(
                 imageVector = if (session.isPinned) Icons.Default.PushPin else Icons.Default.ChatBubbleOutline,
                 contentDescription = null,
-                tint = if (isActive) GemmaAccent else MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = if (isActive) AccentPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(16.dp)
             )
 

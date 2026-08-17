@@ -8,7 +8,7 @@ import androidx.activity.viewModels
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import com.example.ui.screens.ChatScreen
-import com.example.ui.theme.GemmaAgentTheme
+import com.example.ui.theme.AgentAiTheme
 import com.example.ui.viewmodel.ChatViewModel
 
 class MainActivity : ComponentActivity() {
@@ -21,7 +21,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             val uiState by viewModel.uiState.collectAsState()
 
-            GemmaAgentTheme(
+            AgentAiTheme(
                 themeMode = uiState.settings.themeMode,
                 textSize = uiState.settings.textSize
             ) {

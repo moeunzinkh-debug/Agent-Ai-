@@ -26,7 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.ui.theme.GemmaAccent
+import com.example.ui.theme.AccentPrimary
 
 @Composable
 fun ToastNotification(
@@ -49,14 +49,14 @@ fun ToastNotification(
                     modifier = Modifier
                         .clip(RoundedCornerShape(10.dp))
                         .background(MaterialTheme.colorScheme.surface)
-                        .border(1.dp, GemmaAccent.copy(alpha = 0.8f), RoundedCornerShape(10.dp))
+                        .border(1.dp, AccentPrimary.copy(alpha = 0.8f), RoundedCornerShape(10.dp))
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
                         imageVector = Icons.Default.Info,
                         contentDescription = null,
-                        tint = GemmaAccent,
+                        tint = AccentPrimary,
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(10.dp))

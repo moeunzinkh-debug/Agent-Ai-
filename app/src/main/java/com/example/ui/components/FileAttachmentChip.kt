@@ -32,8 +32,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.FileAttachment
-import com.example.ui.theme.GemmaAccent
-import com.example.ui.theme.GemmaAccentLight
+import com.example.ui.theme.AccentPrimary
+import com.example.ui.theme.AccentLight
 
 @Composable
 fun FileAttachmentInputChip(
@@ -48,7 +48,7 @@ fun FileAttachmentInputChip(
         else -> Icons.Default.Description
     }
 
-    val iconTint = if (attachment.isZip) Color(0xFFF59E0B) else GemmaAccent
+    val iconTint = if (attachment.isZip) Color(0xFFF59E0B) else AccentPrimary
 
     Row(
         modifier = modifier
@@ -109,7 +109,7 @@ fun FileAttachmentBubbleCard(
         else -> Icons.AutoMirrored.Filled.InsertDriveFile
     }
 
-    val iconTint = if (attachment.isZip) Color(0xFFF59E0B) else GemmaAccent
+    val iconTint = if (attachment.isZip) Color(0xFFF59E0B) else AccentPrimary
 
     Row(
         modifier = modifier
@@ -125,7 +125,7 @@ fun FileAttachmentBubbleCard(
         Box(
             modifier = Modifier
                 .size(36.dp)
-                .background(GemmaAccentLight, RoundedCornerShape(8.dp)),
+                .background(AccentLight, RoundedCornerShape(8.dp)),
             contentAlignment = Alignment.Center
         ) {
             Icon(

@@ -21,13 +21,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.example.ui.theme.GemmaAccent
+import com.example.ui.theme.AccentPrimary
 import kotlinx.coroutines.delay
 
 @Composable
 fun ThinkingIndicator(
     modifier: Modifier = Modifier,
-    color: Color = GemmaAccent
+    color: Color = AccentPrimary
 ) {
     val dots = listOf(
         remember { Animatable(0.2f) },

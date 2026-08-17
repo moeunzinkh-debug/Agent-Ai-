@@ -8,15 +8,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
 private val DarkColorScheme = darkColorScheme(
-    primary = GemmaAccent,
+    primary = AccentPrimary,
     onPrimary = Color.White,
-    primaryContainer = GemmaAccentHover,
+    primaryContainer = AccentHover,
     onPrimaryContainer = Color.White,
     secondary = DarkBgSecondary,
     onSecondary = DarkTextPrimary,
     secondaryContainer = DarkBgTertiary,
     onSecondaryContainer = DarkTextPrimary,
-    tertiary = GemmaAccentGlow,
+    tertiary = AccentGlow,
     onTertiary = Color.White,
     background = DarkBgPrimary,
     onBackground = DarkTextPrimary,
@@ -31,15 +31,15 @@ private val DarkColorScheme = darkColorScheme(
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = GemmaAccentHover,
+    primary = AccentHover,
     onPrimary = Color.White,
-    primaryContainer = GemmaAccent,
+    primaryContainer = AccentPrimary,
     onPrimaryContainer = Color.White,
     secondary = LightBgSecondary,
     onSecondary = LightTextPrimary,
     secondaryContainer = LightBgTertiary,
     onSecondaryContainer = LightTextPrimary,
-    tertiary = GemmaAccent,
+    tertiary = AccentPrimary,
     onTertiary = Color.White,
     background = LightBgPrimary,
     onBackground = LightTextPrimary,
@@ -54,7 +54,7 @@ private val LightColorScheme = lightColorScheme(
 )
 
 @Composable
-fun GemmaAgentTheme(
+fun AgentAiTheme(
     themeMode: String = "dark", // "dark", "light", "system"
     textSize: String = "medium", // "small", "medium", "large"
     content: @Composable () -> Unit

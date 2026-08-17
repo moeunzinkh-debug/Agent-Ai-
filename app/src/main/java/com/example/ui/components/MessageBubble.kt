@@ -62,7 +62,7 @@ import com.example.data.model.FileAttachment
 import com.example.data.model.LocalizedContent
 import com.example.ui.theme.DarkBgSecondary
 import com.example.ui.theme.DarkTextMuted
-import com.example.ui.theme.GemmaAccent
+import com.example.ui.theme.AccentPrimary
 import com.example.ui.theme.StatusSuccess
 import com.example.util.ZipAndFileHelper
 import kotlinx.coroutines.delay
@@ -115,13 +115,13 @@ fun MessageBubble(
                 modifier = Modifier
                     .size(34.dp)
                     .background(DarkBgSecondary, CircleShape)
-                    .border(1.dp, GemmaAccent.copy(alpha = 0.5f), CircleShape),
+                    .border(1.dp, AccentPrimary.copy(alpha = 0.5f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.AutoAwesome,
                     contentDescription = strings.modelBadge,
-                    tint = GemmaAccent,
+                    tint = AccentPrimary,
                     modifier = Modifier.size(18.dp)
                 )
             }
@@ -144,11 +144,11 @@ fun MessageBubble(
                         )
                     )
                     .background(
-                        if (isUser) GemmaAccent else MaterialTheme.colorScheme.surface
+                        if (isUser) AccentPrimary else MaterialTheme.colorScheme.surface
                     )
                     .border(
                         1.dp,
-                        if (isUser) GemmaAccent else MaterialTheme.colorScheme.outline,
+                        if (isUser) AccentPrimary else MaterialTheme.colorScheme.outline,
                         RoundedCornerShape(
                             topStart = 16.dp,
                             topEnd = 16.dp,
@@ -195,14 +195,14 @@ fun MessageBubble(
                                     Icon(
                                         imageVector = Icons.Default.Psychology,
                                         contentDescription = null,
-                                        tint = GemmaAccent,
+                                        tint = AccentPrimary,
                                         modifier = Modifier.size(16.dp)
                                     )
                                     Text(
                                         text = strings.thoughtProcessTitle,
                                         style = MaterialTheme.typography.labelMedium,
                                         fontWeight = FontWeight.Medium,
-                                        color = GemmaAccent
+                                        color = AccentPrimary
                                     )
                                 }
                                 Icon(
@@ -297,7 +297,7 @@ fun MessageBubble(
                         Icon(
                             imageVector = if (isSpeaking) Icons.AutoMirrored.Filled.VolumeOff else Icons.AutoMirrored.Filled.VolumeUp,
                             contentDescription = if (isSpeaking) strings.stopReadingTooltip else strings.readAloudTooltip,
-                            tint = if (isSpeaking) GemmaAccent else DarkTextMuted,
+                            tint = if (isSpeaking) AccentPrimary else DarkTextMuted,
                             modifier = Modifier.size(14.dp)
                         )
                     }
@@ -311,7 +311,7 @@ fun MessageBubble(
             Box(
                 modifier = Modifier
                     .size(34.dp)
-                    .background(GemmaAccent, CircleShape),
+                    .background(AccentPrimary, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -424,8 +424,8 @@ fun buildMarkdownAnnotatedString(text: String, isUser: Boolean): AnnotatedString
             }
 
             val style = when {
-                isH1 -> SpanStyle(fontWeight = FontWeight.Bold, fontSize = 18.sp, color = if (isUser) Color.White else GemmaAccent)
-                isH2 -> SpanStyle(fontWeight = FontWeight.Bold, fontSize = 16.sp, color = if (isUser) Color.White else GemmaAccent)
+                isH1 -> SpanStyle(fontWeight = FontWeight.Bold, fontSize = 18.sp, color = if (isUser) Color.White else AccentPrimary)
+                isH2 -> SpanStyle(fontWeight = FontWeight.Bold, fontSize = 16.sp, color = if (isUser) Color.White else AccentPrimary)
                 isH3 -> SpanStyle(fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
                 else -> SpanStyle()
             }
@@ -467,7 +467,7 @@ fun AnnotatedString.Builder.parseInlineStyles(line: String, isUser: Boolean) {
                 SpanStyle(
                     fontFamily = FontFamily.Monospace,
                     background = if (isUser) Color(0x33000000) else Color(0xFF232338),
-                    color = if (isUser) Color.White else GemmaAccent,
+                    color = if (isUser) Color.White else AccentPrimary,
                     fontSize = 13.sp
                 )
             ) {

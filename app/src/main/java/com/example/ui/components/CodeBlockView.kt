@@ -37,7 +37,7 @@ import com.example.ui.theme.CodeBlockBg
 import com.example.ui.theme.DarkBorder
 import com.example.ui.theme.DarkTextMuted
 import com.example.ui.theme.DarkTextSecondary
-import com.example.ui.theme.GemmaAccent
+import com.example.ui.theme.AccentPrimary
 import com.example.ui.theme.StatusSuccess
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -71,7 +71,7 @@ fun CodeBlockView(
         ) {
             Text(
                 text = language.ifBlank { "code" }.lowercase(),
-                color = GemmaAccent,
+                color = AccentPrimary,
                 fontSize = 12.sp,
                 fontFamily = FontFamily.Monospace
             )

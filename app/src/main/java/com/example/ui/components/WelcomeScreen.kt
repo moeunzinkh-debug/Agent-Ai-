@@ -30,6 +30,8 @@ import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.FolderZip
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.Psychology
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -47,8 +49,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.AgentPreset
 import com.example.data.model.LocalizedContent
-import com.example.ui.theme.GemmaAccent
-import com.example.ui.theme.GemmaAccentLight
+import com.example.ui.theme.AccentPrimary
+import com.example.ui.theme.AccentLight
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -57,7 +59,14 @@ fun WelcomeScreen(
     language: String,
     onSuggestionClick: (String) -> Unit,
     onAttachClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    /** False until the GGUF weights are on the device; the app cannot answer before then. */
+    isModelReady: Boolean = true,
+    isDownloadingModel: Boolean = false,
+    downloadPercent: Int = 0,
+    modelSizeLabel: String = "",
+    isDeviceSupported: Boolean = true,
+    onSetupModel: () -> Unit = {}
 ) {
     val scrollState = rememberScrollState()
     val strings = remember(language) { LocalizedContent.get(language) }
@@ -79,8 +88,8 @@ fun WelcomeScreen(
                 .background(
                     Brush.radialGradient(
                         colors = listOf(
-                            GemmaAccent,
-                            GemmaAccentLight,
+                            AccentPrimary,
+                            AccentLight,
                             Color.Transparent
                         )
                     )
@@ -91,12 +100,12 @@ fun WelcomeScreen(
                 modifier = Modifier
                     .size(54.dp)
                     .clip(CircleShape)
-                    .background(GemmaAccent),
+                    .background(AccentPrimary),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.AutoAwesome,
-                    contentDescription = "Gemma 4 Agent Logo",
+                    contentDescription = "Agent AI Logo",
                     tint = Color.White,
                     modifier = Modifier.size(30.dp)
                 )
@@ -104,6 +113,18 @@ fun WelcomeScreen(
         }
 
         Spacer(modifier = Modifier.height(16.dp))
+
+        if (!isModelReady) {
+            ModelSetupBanner(
+                isKm = isKm,
+                isDeviceSupported = isDeviceSupported,
+                isDownloading = isDownloadingModel,
+                downloadPercent = downloadPercent,
+                sizeLabel = modelSizeLabel,
+                onSetup = onSetupModel
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+        }
 
         // Title
         Text(
@@ -119,13 +140,13 @@ fun WelcomeScreen(
         Box(
             modifier = Modifier
                 .clip(RoundedCornerShape(12.dp))
-                .background(GemmaAccent.copy(alpha = 0.15f))
+                .background(AccentPrimary.copy(alpha = 0.15f))
                 .padding(horizontal = 12.dp, vertical = 4.dp)
         ) {
             Text(
                 text = "${if (isKm) "របៀប" else "Mode"}: ${currentPreset.getDisplayName(language)}",
                 style = MaterialTheme.typography.labelMedium,
-                color = GemmaAccent,
+                color = AccentPrimary,
                 fontWeight = FontWeight.SemiBold
             )
         }
@@ -283,7 +304,7 @@ fun SuggestionChip(
         Icon(
             imageVector = item.icon,
             contentDescription = null,
-            tint = GemmaAccent,
+            tint = AccentPrimary,
             modifier = Modifier.size(16.dp)
         )
         Text(
@@ -292,5 +313,82 @@ fun SuggestionChip(
             color = MaterialTheme.colorScheme.onSurface,
             fontWeight = FontWeight.Medium
         )
+    }
+}
+
+/**
+ * Shown while the on-device weights are missing. The app deliberately refuses to answer with
+ * scripted text, so the user is guided to the one-time download instead.
+ */
+@Composable
+private fun ModelSetupBanner(
+    isKm: Boolean,
+    isDeviceSupported: Boolean,
+    isDownloading: Boolean,
+    downloadPercent: Int,
+    sizeLabel: String,
+    onSetup: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(AccentPrimary.copy(alpha = 0.12f))
+            .padding(16.dp)
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            if (!isDeviceSupported) {
+                Text(
+                    text = if (isKm) "ឧបករណ៍នេះមិនអាចដំណើរការបានទេ"
+                    else "This device is not supported",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = if (isKm)
+                        "ត្រូវការ CPU ARM 64-bit ដើម្បីដំណើរការ AI ក្នុងឧបករណ៍។"
+                    else
+                        "A 64-bit ARM processor is required to run the AI on-device.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+            } else {
+            Text(
+                text = if (isKm) "ត្រៀមម៉ូដែល AI របស់អ្នក" else "Set up your AI model",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = if (isKm)
+                    "ទាញយកម៉ូដែលម្តងគត់ ($sizeLabel) ដើម្បីឱ្យ AI ពិតប្រាកដដំណើរការក្នុងទូរស័ព្ទរបស់អ្នក។"
+                else
+                    "Download the model once ($sizeLabel) so real AI can run on your phone.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            if (isDownloading) {
+                Text(
+                    text = if (isKm) "កំពុងទាញយក... $downloadPercent%" else "Downloading... $downloadPercent%",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = AccentPrimary,
+                    fontWeight = FontWeight.Medium
+                )
+            } else {
+                Button(
+                    onClick = onSetup,
+                    colors = ButtonDefaults.buttonColors(containerColor = AccentPrimary)
+                ) {
+                    Text(if (isKm) "ទាញយកឥឡូវនេះ" else "Download now")
+                }
+            }
+            }
+        }
     }
 }

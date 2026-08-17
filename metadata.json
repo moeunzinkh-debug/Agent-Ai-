@@ -1,6 +1,6 @@
 {
-  "name": "Gemma 4 Agent AI",
-  "description": "Advanced conversational AI assistant with multi-session chat history, code execution assistance, ZIP and file analysis, custom agent presets, and full offline persistence.",
+  "name": "Agent AI",
+  "description": "Private AI assistant that runs a real Llama 3.2 1B Instruct model fully on-device with llama.cpp: multi-session chat history, code help, ZIP and file analysis, custom agent presets, and complete offline operation.",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": []
 }

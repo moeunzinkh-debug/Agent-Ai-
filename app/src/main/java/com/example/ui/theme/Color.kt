@@ -2,7 +2,7 @@ package com.example.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Gemma 4 Agent AI Dark Palette
+// Agent AI Dark Palette
 val DarkBgPrimary = Color(0xFF0F0F0F)
 val DarkBgSecondary = Color(0xFF1A1A2E)
 val DarkBgTertiary = Color(0xFF16213E)
@@ -17,7 +17,7 @@ val DarkTextMuted = Color(0xFF6C6C8A)
 val DarkBorder = Color(0xFF2E2E45)
 val DarkBorderLight = Color(0xFF3A3A55)
 
-// Gemma 4 Agent AI Light Palette
+// Agent AI Light Palette
 val LightBgPrimary = Color(0xFFFFFFFF)
 val LightBgSecondary = Color(0xFFF3F4F6)
 val LightBgTertiary = Color(0xFFE5E7EB)
@@ -33,10 +33,10 @@ val LightBorder = Color(0xFFE5E7EB)
 val LightBorderLight = Color(0xFFD1D5DB)
 
 // Common Accent Brand Colors
-val GemmaAccent = Color(0xFF8B5CF6)
-val GemmaAccentHover = Color(0xFF7C3AED)
-val GemmaAccentLight = Color(0x268B5CF6)
-val GemmaAccentGlow = Color(0xFF9D74FF)
+val AccentPrimary = Color(0xFF8B5CF6)
+val AccentHover = Color(0xFF7C3AED)
+val AccentLight = Color(0x268B5CF6)
+val AccentGlow = Color(0xFF9D74FF)
 
 val StatusSuccess = Color(0xFF22C55E)
 val StatusDanger = Color(0xFFEF4444)

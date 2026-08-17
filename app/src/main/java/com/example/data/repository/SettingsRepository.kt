@@ -3,6 +3,7 @@ package com.example.data.repository
 import android.content.Context
 import android.content.SharedPreferences
 import com.example.data.model.AppSettings
+import com.example.data.model.LocalModels
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -11,7 +12,7 @@ import kotlinx.coroutines.flow.update
 class SettingsRepository(context: Context) {
 
     private val prefs: SharedPreferences =
-        context.getSharedPreferences("gemma_agent_settings", Context.MODE_PRIVATE)
+        context.getSharedPreferences("agent_ai_settings", Context.MODE_PRIVATE)
 
     private val _settings = MutableStateFlow(loadSettings())
     val settings: StateFlow<AppSettings> = _settings.asStateFlow()
@@ -21,12 +22,11 @@ class SettingsRepository(context: Context) {
             language = prefs.getString("language", "en") ?: "en",
             themeMode = prefs.getString("theme_mode", "dark") ?: "dark",
             textSize = prefs.getString("text_size", "medium") ?: "medium",
-            activeModel = prefs.getString("active_model", "gemma-4-flash") ?: "gemma-4-flash",
+            activeModel = prefs.getString("active_model", LocalModels.DEFAULT.id) ?: LocalModels.DEFAULT.id,
             customSystemPrompt = prefs.getString("custom_system_prompt", "") ?: "",
-            isThinkingEnabled = prefs.getBoolean("is_thinking_enabled", true),
             isTtsEnabled = prefs.getBoolean("is_tts_enabled", true),
             isGithubConnected = prefs.getBoolean("is_github_connected", true),
-            githubUsername = prefs.getString("github_username", "gemma-developer") ?: "gemma-developer",
+            githubUsername = prefs.getString("github_username", "agent-developer") ?: "agent-developer",
             soundEffects = prefs.getBoolean("sound_effects", true)
         )
     }
@@ -54,11 +54,6 @@ class SettingsRepository(context: Context) {
     fun updateCustomSystemPrompt(prompt: String) {
         prefs.edit().putString("custom_system_prompt", prompt).apply()
         _settings.update { it.copy(customSystemPrompt = prompt) }
-    }
-
-    fun updateThinkingEnabled(enabled: Boolean) {
-        prefs.edit().putBoolean("is_thinking_enabled", enabled).apply()
-        _settings.update { it.copy(isThinkingEnabled = enabled) }
     }
 
     fun updateTtsEnabled(enabled: Boolean) {

@@ -16,3 +16,7 @@
 local.properties
 .env
 debug.keystore
+
+# Large source art; generated launcher assets are committed under app/src/main/res
+assets/branding/*_src.png
+assets/branding/emblem_*.png

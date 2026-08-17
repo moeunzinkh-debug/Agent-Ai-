@@ -22,6 +22,7 @@ dependencyResolutionManagement {
   }
 }
 
-rootProject.name = "Gemma 4 Agent AI"
+rootProject.name = "Agent AI"
 
 include(":app")
+include(":llama")

@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -24,12 +25,14 @@ import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.Storage
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -54,19 +57,28 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.data.model.AppSettings
+import com.example.data.model.LocalModel
 import com.example.data.model.LocalizedContent
-import com.example.ui.theme.GemmaAccent
+import com.example.ui.theme.AccentPrimary
 import com.example.ui.theme.StatusDanger
 import com.example.ui.theme.StatusSuccess
 
 @Composable
 fun SettingsDialog(
     settings: AppSettings,
+    activeModel: LocalModel,
+    isModelDownloaded: Boolean,
+    isDownloadingModel: Boolean,
+    downloadPercent: Int,
+    downloadedBytes: Long,
+    downloadError: String?,
+    onDownloadModel: () -> Unit,
+    onCancelDownload: () -> Unit,
+    onDeleteModel: () -> Unit,
     onLanguageChange: (String) -> Unit,
     onThemeChange: (String) -> Unit,
     onTextSizeChange: (String) -> Unit,
     onModelChange: (String) -> Unit,
-    onThinkingChange: (Boolean) -> Unit,
     onTtsChange: (Boolean) -> Unit,
     onCustomPromptChange: (String) -> Unit,
     onToggleGithub: () -> Unit,
@@ -198,46 +210,22 @@ fun SettingsDialog(
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                Spacer(modifier = Modifier.height(6.dp))
-                SegmentedButtons(
-                    options = listOf(
-                        "Gemma 4 Flash" to "gemma-4-flash",
-                        "Gemma 4 Pro" to "gemma-4-pro",
-                        "Gemini 3.5" to "gemini-3.5-flash"
-                    ),
-                    selectedKey = settings.activeModel,
-                    onSelect = onModelChange
+                Spacer(modifier = Modifier.height(8.dp))
+                OnDeviceModelCard(
+                    model = activeModel,
+                    isDownloaded = isModelDownloaded,
+                    isDownloading = isDownloadingModel,
+                    downloadPercent = downloadPercent,
+                    downloadedBytes = downloadedBytes,
+                    downloadError = downloadError,
+                    isKhmer = settings.language == "km",
+                    onDownload = onDownloadModel,
+                    onCancel = onCancelDownload,
+                    onDelete = onDeleteModel
                 )
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = strings.deepThinkingLabel,
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            text = strings.deepThinkingDesc,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Switch(
-                        checked = settings.isThinkingEnabled,
-                        onCheckedChange = onThinkingChange,
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = Color.White,
-                            checkedTrackColor = GemmaAccent
-                        )
-                    )
-                }
 
                 Spacer(modifier = Modifier.height(8.dp))
 
@@ -264,7 +252,7 @@ fun SettingsDialog(
                         onCheckedChange = onTtsChange,
                         colors = SwitchDefaults.colors(
                             checkedThumbColor = Color.White,
-                            checkedTrackColor = GemmaAccent
+                            checkedTrackColor = AccentPrimary
                         )
                     )
                 }
@@ -325,7 +313,7 @@ fun SettingsDialog(
                     OutlinedButton(
                         onClick = onToggleGithub,
                         colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = if (settings.isGithubConnected) StatusDanger else GemmaAccent
+                            contentColor = if (settings.isGithubConnected) StatusDanger else AccentPrimary
                         )
                     ) {
                         Text(text = if (settings.isGithubConnected) strings.githubDisconnectBtn else strings.githubConnectBtn)
@@ -405,14 +393,14 @@ fun SettingsSectionHeader(title: String, icon: androidx.compose.ui.graphics.vect
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = GemmaAccent,
+            tint = AccentPrimary,
             modifier = Modifier.size(18.dp)
         )
         Text(
             text = title.uppercase(),
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.Bold,
-            color = GemmaAccent,
+            color = AccentPrimary,
             letterSpacing = 0.5.sp
         )
     }
@@ -438,7 +426,7 @@ fun SegmentedButtons(
                 modifier = Modifier
                     .weight(1f)
                     .clip(RoundedCornerShape(6.dp))
-                    .background(if (isSelected) GemmaAccent else Color.Transparent)
+                    .background(if (isSelected) AccentPrimary else Color.Transparent)
                     .clickable { onSelect(key) }
                     .padding(vertical = 8.dp),
                 contentAlignment = Alignment.Center
@@ -453,3 +441,197 @@ fun SegmentedButtons(
         }
     }
 }
+
+/**
+ * Manages the GGUF weights that power real on-device inference.
+ *
+ * Until these weights are downloaded the app cannot answer at all — it never falls back to
+ * canned text, so the download state is surfaced prominently here.
+ */
+@Composable
+private fun OnDeviceModelCard(
+    model: LocalModel,
+    isDownloaded: Boolean,
+    isDownloading: Boolean,
+    downloadPercent: Int,
+    downloadedBytes: Long,
+    downloadError: String?,
+    isKhmer: Boolean,
+    onDownload: () -> Unit,
+    onCancel: () -> Unit,
+    onDelete: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        shape = RoundedCornerShape(14.dp),
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            if (isDownloaded) StatusSuccess.copy(alpha = 0.5f) else MaterialTheme.colorScheme.outline
+        )
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = model.displayName,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = if (isKhmer) model.descriptionKm else model.description,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(
+                    text = model.sizeLabel,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = AccentPrimary
+                )
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Badges: uncensored / offline capability
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                if (model.isUncensored) {
+                    ModelBadge(text = if (isKhmer) "គ្មានការត្រួតពិនិត្យ" else "Uncensored")
+                }
+                ModelBadge(text = if (isKhmer) "ដំណើរការក្រៅបណ្តាញ" else "Runs offline")
+                ModelBadge(text = "GGUF")
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            when {
+                isDownloading -> {
+                    Text(
+                        text = if (isKhmer) "កំពុងទាញយក... $downloadPercent%"
+                        else "Downloading... $downloadPercent%",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    LinearProgressIndicator(
+                        progress = { downloadPercent / 100f },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(6.dp)
+                            .clip(RoundedCornerShape(3.dp)),
+                        color = AccentPrimary,
+                        trackColor = MaterialTheme.colorScheme.outlineVariant
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = "${downloadedBytes / (1024 * 1024)} MB / ${model.sizeMb} MB",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedButton(
+                        onClick = onCancel,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(if (isKhmer) "បោះបង់" else "Cancel")
+                    }
+                }
+
+                isDownloaded -> {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(StatusSuccess)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = if (isKhmer) "ត្រៀមរួចរាល់ • AI ពិតប្រាកដដំណើរការក្នុងឧបករណ៍"
+                            else "Ready • real AI running on this device",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = StatusSuccess,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(10.dp))
+                    OutlinedButton(
+                        onClick = onDelete,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = StatusDanger)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.DeleteForever,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(if (isKhmer) "លុបម៉ូដែលចេញពីឧបករណ៍" else "Delete model from device")
+                    }
+                }
+
+                else -> {
+                    Text(
+                        text = if (isKhmer)
+                            "ត្រូវទាញយកម៉ូដែលមុនសិន។ បន្ទាប់ពីទាញយករួច AI ឆ្លើយបានទាំងគ្មានអ៊ីនធឺណិត។"
+                        else
+                            "Download the weights once. After that the AI answers with or without internet.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Button(
+                        onClick = onDownload,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = AccentPrimary)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Download,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            if (isKhmer) "ទាញយកម៉ូដែល (${model.sizeLabel})"
+                            else "Download model (${model.sizeLabel})"
+                        )
+                    }
+                }
+            }
+
+            if (downloadError != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = downloadError,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = StatusDanger
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ModelBadge(text: String) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(6.dp))
+            .background(AccentPrimary.copy(alpha = 0.15f))
+            .padding(horizontal = 8.dp, vertical = 3.dp)
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelSmall,
+            color = AccentPrimary,
+            fontWeight = FontWeight.Medium
+        )
+    }
+}
+
