@@ -51,9 +51,15 @@ object LlamaBridge {
 
     fun isModelLoaded(): Boolean = isAvailable() && nativeIsModelLoaded()
 
-    /** A sensible thread count: physical cores minus one, clamped to 2..6. */
+    /**
+     * Thread count tuned for phones.
+     *
+     * Phones are big.LITTLE: availableProcessors() counts the slow efficiency cores too.
+     * ggml synchronises all threads at every layer, so the fast cores end up waiting on
+     * the slow ones — past ~4 threads throughput usually gets *worse*, not better.
+     */
     private fun defaultThreads(): Int =
-        Runtime.getRuntime().availableProcessors().let { (it - 1).coerceIn(2, 6) }
+        Runtime.getRuntime().availableProcessors().let { (it / 2).coerceIn(2, 4) }
 
     suspend fun loadModel(
         modelFile: File,

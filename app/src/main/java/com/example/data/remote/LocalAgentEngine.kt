@@ -191,15 +191,12 @@ class LocalAgentEngine(private val context: Context) {
         append(systemPrompt)
         append("<|eot_id|>")
 
-        history
-            .filter { it.content.isNotBlank() && it.status != "error" }
-            .takeLast(HISTORY_TURNS)
-            .forEach { msg ->
-                val role = if (msg.role == "user") "user" else "assistant"
-                append("<|start_header_id|>$role<|end_header_id|>\n\n")
-                append(msg.content.take(MAX_HISTORY_CHARS))
-                append("<|eot_id|>")
-            }
+        selectStableHistory(history).forEach { msg ->
+            val role = if (msg.role == "user") "user" else "assistant"
+            append("<|start_header_id|>$role<|end_header_id|>\n\n")
+            append(msg.content.take(MAX_HISTORY_CHARS))
+            append("<|eot_id|>")
+        }
 
         append("<|start_header_id|>user<|end_header_id|>\n\n")
         val attachmentContext = buildAttachmentContext(attachments)
@@ -216,6 +213,22 @@ class LocalAgentEngine(private val context: Context) {
         append("<|eot_id|>")
 
         append("<|start_header_id|>assistant<|end_header_id|>\n\n")
+    }
+
+    /**
+     * Picks the history to replay, in a way that keeps the prompt *prefix* stable.
+     *
+     * A plain `takeLast(n)` sliding window shifts the prefix on every turn, which would
+     * defeat the native KV-cache prefix reuse and force a full re-read of the conversation
+     * before each reply. Instead the window only changes when the budget is actually
+     * exceeded, and then drops the oldest half in one go — so most turns reuse the cache
+     * and only an occasional turn pays for a rebuild.
+     */
+    private fun selectStableHistory(history: List<ChatMessage>): List<ChatMessage> {
+        val usable = history.filter { it.content.isNotBlank() && it.status != "error" }
+        if (usable.size <= MAX_HISTORY_MESSAGES) return usable
+        // Keep the newest half-window so the retained prefix stays put for several turns.
+        return usable.takeLast(MAX_HISTORY_MESSAGES / 2)
     }
 
     private fun buildAttachmentContext(attachments: List<FileAttachment>): String {
@@ -240,10 +253,13 @@ class LocalAgentEngine(private val context: Context) {
 
     private companion object {
         const val TAG = "LocalAgentEngine"
-        const val PREDICT_TOKENS = 768
+        // Cap replies so a slow phone CPU cannot run on for minutes. Most answers stop
+        // at the EOG token well before this.
+        const val PREDICT_TOKENS = 512
 
         // A 1B model with a 2K window fills up fast; keep history and attachments tight.
-        const val HISTORY_TURNS = 4
+        // Must stay even: selectStableHistory() evicts half the window at a time.
+        const val MAX_HISTORY_MESSAGES = 8
         const val MAX_HISTORY_CHARS = 600
         const val MAX_ATTACHMENT_CHARS = 1500
     }

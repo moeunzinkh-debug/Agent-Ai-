@@ -7,6 +7,7 @@
 #include <jni.h>
 #include <android/log.h>
 
+#include <algorithm>
 #include <string>
 #include <vector>
 #include <mutex>
@@ -26,6 +27,10 @@ struct GenerationState {
 
     // Absolute position in the KV cache; must keep increasing across turns.
     llama_pos n_past = 0;
+
+    // Tokens currently held in the KV cache. Lets us reuse the shared prefix
+    // (system prompt + earlier turns) instead of re-decoding it every message.
+    std::vector<llama_token> cached;
 
     // Remaining tokens allowed for the current reply.
     int  budget      = 0;
@@ -69,6 +74,7 @@ void free_context_locked() {
     g_state.budget     = 0;
     g_state.generating = false;
     g_state.utf8_carry.clear();
+    g_state.cached.clear();
 }
 
 } // namespace
@@ -115,6 +121,7 @@ Java_com_example_llama_LlamaBridge_nativeLoadModel(
     auto cparams = llama_context_default_params();
     cparams.n_ctx       = static_cast<uint32_t>(n_ctx);
     cparams.n_batch     = 256;
+    cparams.n_ubatch    = 256; // keep the physical batch aligned with the logical one
     cparams.n_threads   = n_threads;
     cparams.n_threads_batch = n_threads;
     cparams.no_perf     = true;
@@ -129,7 +136,9 @@ Java_com_example_llama_LlamaBridge_nativeLoadModel(
     auto sparams = llama_sampler_chain_default_params();
     sparams.no_perf = true;
     g_state.sampler = llama_sampler_chain_init(sparams);
-    llama_sampler_chain_add(g_state.sampler, llama_sampler_init_top_k(40));
+    // top_k first shrinks the candidate set before the costlier steps run.
+    // 30 is plenty for a 1B vocab and slightly cheaper than 40.
+    llama_sampler_chain_add(g_state.sampler, llama_sampler_init_top_k(30));
     llama_sampler_chain_add(g_state.sampler, llama_sampler_init_top_p(0.95f, 1));
     llama_sampler_chain_add(g_state.sampler, llama_sampler_init_temp(0.7f));
     llama_sampler_chain_add(g_state.sampler, llama_sampler_init_dist(LLAMA_DEFAULT_SEED));
@@ -157,11 +166,6 @@ Java_com_example_llama_LlamaBridge_nativeStartCompletion(
 
     const llama_vocab * vocab = llama_model_get_vocab(g_state.model);
 
-    // Fresh conversation each call: the Kotlin layer replays history in the prompt,
-    // so a clean KV cache keeps behaviour predictable.
-    llama_memory_clear(llama_get_memory(g_state.ctx), true);
-    g_state.n_past = 0;
-
     const int n_prompt = -llama_tokenize(
             vocab, text.c_str(), (int32_t) text.size(), nullptr, 0, true, true);
     if (n_prompt <= 0) return -2;
@@ -178,17 +182,48 @@ Java_com_example_llama_LlamaBridge_nativeStartCompletion(
         return -4;
     }
 
-    // Evaluate the prompt in batches so we respect n_batch.
+    // --- KV cache prefix reuse -------------------------------------------------
+    // Successive turns share a long prefix (system prompt + earlier messages).
+    // Re-decoding it every time dominates time-to-first-token, so keep whatever
+    // still matches and only evaluate the new suffix.
+    size_t reuse = 0;
+    const size_t max_reuse = std::min(g_state.cached.size(), (size_t) n_prompt);
+    while (reuse < max_reuse && g_state.cached[reuse] == tokens[reuse]) {
+        ++reuse;
+    }
+
+    // Never reuse the whole prompt: at least one token must be decoded to produce
+    // logits for the first sampled token.
+    if (reuse == (size_t) n_prompt) {
+        reuse = (size_t) n_prompt - 1;
+    }
+
+    // Always drop everything at or after the divergence point. Doing this
+    // unconditionally also covers the clamp above, where position n_prompt-1 may
+    // still hold a stale entry from the previous turn.
+    llama_memory_seq_rm(llama_get_memory(g_state.ctx), 0, (llama_pos) reuse, -1);
+
+    g_state.n_past = (llama_pos) reuse;
+    // Record only what the cache really holds; generated tokens are appended as
+    // they are decoded in nativeNextToken().
+    g_state.cached.assign(tokens.begin(), tokens.end());
+
+    // Evaluate only the new suffix, in batches that respect n_batch.
     const int n_batch = 256;
-    for (int i = 0; i < n_prompt; i += n_batch) {
+    for (int i = (int) reuse; i < n_prompt; i += n_batch) {
         const int chunk = std::min(n_batch, n_prompt - i);
         llama_batch batch = llama_batch_get_one(tokens.data() + i, chunk);
         if (llama_decode(g_state.ctx, batch) != 0) {
             LOGE("llama_decode failed on prompt");
+            // Cache no longer reflects the context; force a clean rebuild next time.
+            llama_memory_clear(llama_get_memory(g_state.ctx), true);
+            g_state.cached.clear();
+            g_state.n_past = 0;
             return -3;
         }
         g_state.n_past += chunk;
     }
+    LOGI("prompt %d tokens, reused %zu from cache", n_prompt, reuse);
 
     g_state.budget     = max_tokens;
     g_state.generating = true;
@@ -216,6 +251,8 @@ Java_com_example_llama_LlamaBridge_nativeNextToken(JNIEnv * env, jobject) {
 
     if (llama_vocab_is_eog(vocab, id)) {
         g_state.generating = false;
+        // The assistant turn ended cleanly; the cache is consistent and the next
+        // message can reuse it as a prefix.
         return nullptr;
     }
 
@@ -237,8 +274,14 @@ Java_com_example_llama_LlamaBridge_nativeNextToken(JNIEnv * env, jobject) {
     llama_batch batch = llama_batch_get_one(&next, 1);
     if (llama_decode(g_state.ctx, batch) != 0) {
         g_state.generating = false;
+        // Cache and context have diverged; rebuild from scratch next turn.
+        llama_memory_clear(llama_get_memory(g_state.ctx), true);
+        g_state.cached.clear();
+        g_state.n_past = 0;
         return nullptr;
     }
+    // Track generated tokens too, so the next turn's prefix match stays accurate.
+    g_state.cached.push_back(id);
     g_state.n_past += 1;
     g_state.budget -= 1;
 
