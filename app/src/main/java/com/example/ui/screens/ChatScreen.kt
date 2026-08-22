@@ -69,6 +69,7 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import com.example.data.model.AiModels
 import com.example.data.model.LocalizedContent
 import com.example.ui.components.AttachmentDetailDialog
 import com.example.ui.components.FileAttachmentInputChip
@@ -392,7 +393,7 @@ fun ChatScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "${uiState.settings.activeModel} • ${uiState.currentPreset.getDisplayName(currentLang)}",
+                                text = "${AiModels.getById(uiState.settings.activeModel).displayName} • ${uiState.currentPreset.getDisplayName(currentLang)}",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
                             )
