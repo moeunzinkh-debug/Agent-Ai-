@@ -46,7 +46,15 @@ android {
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
       signingConfig = signingConfigs.getByName("release")
     }
-    debug { signingConfig = signingConfigs.getByName("debugConfig") }
+    debug {
+      // Use the committed custom debug keystore when present; otherwise fall
+      // back to the Android SDK's auto-generated debug keystore so the build
+      // succeeds in CI without a checked-in keystore.
+      val customDebugKeystore = rootProject.file("debug.keystore")
+      signingConfig =
+        if (customDebugKeystore.exists()) signingConfigs.getByName("debugConfig")
+        else signingConfigs.getByName("debug")
+    }
   }
   compileOptions {
     sourceCompatibility = JavaVersion.VERSION_11
