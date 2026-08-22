@@ -9,6 +9,7 @@ import com.example.data.local.AppDatabase
 import com.example.data.model.AgentPreset
 import com.example.data.model.AgentPresets
 import com.example.data.model.FileAttachment
+import com.example.data.remote.GemmaAgentEngine
 import com.example.data.repository.ChatRepository
 import com.example.data.repository.SettingsRepository
 import com.example.util.TextToSpeechHelper
@@ -24,7 +25,7 @@ import kotlinx.coroutines.launch
 class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     private val db = AppDatabase.getDatabase(application)
-    private val chatRepository = ChatRepository(db.chatDao())
+    private val chatRepository = ChatRepository(db.chatDao(), GemmaAgentEngine(application))
     private val settingsRepository = SettingsRepository(application)
     private val ttsHelper = TextToSpeechHelper(application)
 
@@ -172,7 +173,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     agentPreset = state.currentPreset,
                     customInstruction = state.settings.customSystemPrompt,
                     isThinkingEnabled = state.settings.isThinkingEnabled,
-                    language = state.settings.language
+                    language = state.settings.language,
+                    activeModel = state.settings.activeModel
                 )
             } catch (e: Exception) {
                 showToast("Error generating response: ${e.localizedMessage}")

@@ -13,7 +13,7 @@ import java.util.UUID
 
 class ChatRepository(
     private val chatDao: ChatDao,
-    private val agentEngine: GemmaAgentEngine = GemmaAgentEngine()
+    private val agentEngine: GemmaAgentEngine
 ) {
 
     val allSessions: Flow<List<ChatSession>> = chatDao.getAllSessions()
@@ -77,7 +77,8 @@ class ChatRepository(
         agentPreset: AgentPreset,
         customInstruction: String,
         isThinkingEnabled: Boolean,
-        language: String = "en"
+        language: String = "en",
+        activeModel: String = "gemma-4-flash"
     ) {
         val timestamp = System.currentTimeMillis()
         val attachmentsJson = ZipAndFileHelper.serializeAttachments(attachments)
@@ -135,7 +136,8 @@ class ChatRepository(
             agentPreset = agentPreset,
             customInstruction = customInstruction,
             isThinkingEnabled = isThinkingEnabled,
-            language = language
+            language = language,
+            activeModel = activeModel
         )
 
         // 4. Update assistant message with response

@@ -53,6 +53,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.example.data.model.AiModels
 import com.example.data.model.AppSettings
 import com.example.data.model.LocalizedContent
 import com.example.ui.theme.GemmaAccent
@@ -200,14 +201,22 @@ fun SettingsDialog(
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 SegmentedButtons(
-                    options = listOf(
-                        "Gemma 4 Flash" to "gemma-4-flash",
-                        "Gemma 4 Pro" to "gemma-4-pro",
-                        "Gemini 3.5" to "gemini-3.5-flash"
-                    ),
-                    selectedKey = settings.activeModel,
+                    options = AiModels.all.map { it.displayName to it.id },
+                    selectedKey = if (AiModels.isSmolLm(settings.activeModel)) {
+                        AiModels.SMOLLM_135M_UNCENSORED
+                    } else {
+                        settings.activeModel
+                    },
                     onSelect = onModelChange
                 )
+                if (AiModels.isSmolLm(settings.activeModel)) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = "Runs privately on-device. The verified 138 MB Q8 GGUF is downloaded on first message and then works offline.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(12.dp))
 
@@ -424,31 +433,42 @@ fun SegmentedButtons(
     selectedKey: String,
     onSelect: (String) -> Unit
 ) {
-    Row(
+    val rows = options.chunked(if (options.size > 3) 2 else options.size.coerceAtLeast(1))
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant)
             .padding(3.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
+        verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        options.forEach { (label, key) ->
-            val isSelected = selectedKey == key
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(if (isSelected) GemmaAccent else Color.Transparent)
-                    .clickable { onSelect(key) }
-                    .padding(vertical = 8.dp),
-                contentAlignment = Alignment.Center
+        rows.forEach { rowOptions ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                    color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                rowOptions.forEach { (label, key) ->
+                    val isSelected = selectedKey == key
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(if (isSelected) GemmaAccent else Color.Transparent)
+                            .clickable { onSelect(key) }
+                            .padding(vertical = 8.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                            color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                if (rowOptions.size < rows.first().size) {
+                    Spacer(modifier = Modifier.weight(1f))
+                }
             }
         }
     }

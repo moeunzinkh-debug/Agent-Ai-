@@ -1,8 +1,10 @@
 package com.example.data.remote
 
+import android.content.Context
 import android.util.Log
 import com.example.BuildConfig
 import com.example.data.model.AgentPreset
+import com.example.data.model.AiModels
 import com.example.data.model.AgentPresets
 import com.example.data.model.ChatMessage
 import com.example.data.model.FileAttachment
@@ -12,8 +14,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 
 class GemmaAgentEngine(
+    context: Context,
     private val apiService: GeminiApiService = GeminiApiService.create()
 ) {
+    private val localSmolLmEngine = LocalSmolLmEngine(context)
 
     data class AgentResult(
         val responseText: String,
@@ -29,7 +33,8 @@ class GemmaAgentEngine(
         agentPreset: AgentPreset,
         customInstruction: String,
         isThinkingEnabled: Boolean,
-        language: String = "en"
+        language: String = "en",
+        activeModel: String = "gemma-4-flash"
     ): AgentResult = withContext(Dispatchers.IO) {
         val apiKey = try {
             BuildConfig.GEMINI_API_KEY
@@ -58,6 +63,28 @@ class GemmaAgentEngine(
             if (isThinkingEnabled) {
                 appendLine()
                 appendLine("Format your reasoning: If complex reasoning is needed, you may start your response with a thinking block enclosed in <thought>...</thought> followed by your final well-formatted answer.")
+            }
+        }
+
+        if (AiModels.isSmolLm(activeModel)) {
+            return@withContext try {
+                val localPrompt = buildLocalChatPrompt(
+                    systemPrompt = combinedSystemPrompt,
+                    history = history,
+                    userMessage = userMessage,
+                    attachmentContext = attachmentContext
+                )
+                val rawText = localSmolLmEngine.generate(localPrompt)
+                val (thought, cleanText) = extractThinking(rawText)
+                AgentResult(cleanText, thought, isSuccess = true)
+            } catch (error: Exception) {
+                Log.e("GemmaAgentEngine", "Local SmolLM inference failed", error)
+                AgentResult(
+                    responseText = "Unable to run the local SmolLM model: ${error.message}",
+                    thinkingProcess = "",
+                    isSuccess = false,
+                    errorMessage = error.message
+                )
             }
         }
 
@@ -133,6 +160,30 @@ class GemmaAgentEngine(
             isThinkingEnabled = isThinkingEnabled,
             language = language
         )
+    }
+
+    private fun buildLocalChatPrompt(
+        systemPrompt: String,
+        history: List<ChatMessage>,
+        userMessage: String,
+        attachmentContext: String
+    ): String = buildString {
+        append("<|im_start|>system\n")
+        append(systemPrompt.trim())
+        append("<|im_end|>\n")
+        history.takeLast(6).forEach { message ->
+            val role = if (message.role == "user") "user" else "assistant"
+            append("<|im_start|>$role\n")
+            append(message.content.trim())
+            append("<|im_end|>\n")
+        }
+        append("<|im_start|>user\n")
+        append(userMessage)
+        if (attachmentContext.isNotBlank()) {
+            append("\n\n--- ATTACHED FILES & REPOSITORIES ---\n")
+            append(attachmentContext)
+        }
+        append("<|im_end|>\n<|im_start|>assistant\n")
     }
 
     private fun buildAttachmentContext(attachments: List<FileAttachment>): String {
